@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 
-	"github.com/ecc1/cc1101"
+	"github.com/ecc1/cc2500"
 )
 
 func main() {
-	r := cc1101.Open().(*cc1101.Radio)
+	r := cc2500.Open().(*cc2500.Radio)
 	if r.Error() != nil {
 		log.Fatal(r.Error())
 	}
@@ -16,7 +16,7 @@ func main() {
 	r.Reset()
 	r.DumpRF()
 
-	freq := uint32(916600000)
+	freq := uint32(2400000000)
 	log.Println("")
 	log.Printf("Initializing radio to %d Hz", freq)
 	r.InitRF(freq)

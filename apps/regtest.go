@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ecc1/cc1101"
+	"github.com/ecc1/cc2500"
 )
 
 func main() {
-	r := cc1101.Open().(*cc1101.Radio)
+	r := cc2500.Open().(*cc2500.Radio)
 	if r.Error() != nil {
 		log.Fatal(r.Error())
 	}
@@ -18,25 +18,25 @@ func main() {
 
 	fmt.Printf("\nTesting individual writes\n")
 	hw := r.Hardware()
-	hw.WriteRegister(cc1101.SYNC1, 0x44)
-	hw.WriteRegister(cc1101.SYNC0, 0x55)
+	hw.WriteRegister(cc2500.SYNC1, 0x44)
+	hw.WriteRegister(cc2500.SYNC0, 0x55)
 	readRegs(r)
 
 	r.Reset()
 	fmt.Printf("\nTesting burst writes\n")
-	hw.WriteBurst(cc1101.SYNC1, []byte{0x66, 0x77})
+	hw.WriteBurst(cc2500.SYNC1, []byte{0x66, 0x77})
 	readRegs(r)
 }
 
-func dumpRegs(r *cc1101.Radio) {
+func dumpRegs(r *cc2500.Radio) {
 	fmt.Printf("\nConfiguration registers:\n")
 	regs := r.ReadConfiguration().Bytes()
-	resetValue := cc1101.ResetRfConfiguration.Bytes()
+	resetValue := cc2500.ResetRfConfiguration.Bytes()
 	if r.Error() != nil {
 		log.Fatal(r.Error())
 	}
 	for i, v := range regs {
-		fmt.Printf("%02X  %02X  %08b", cc1101.IOCFG2+i, v, v)
+		fmt.Printf("%02X  %02X  %08b", cc2500.IOCFG2+i, v, v)
 		r := resetValue[i]
 		if v == r {
 			fmt.Printf("\n")
@@ -46,15 +46,15 @@ func dumpRegs(r *cc1101.Radio) {
 	}
 }
 
-func readRegs(r *cc1101.Radio) {
+func readRegs(r *cc2500.Radio) {
 	hw := r.Hardware()
-	x := hw.ReadRegister(cc1101.SYNC1)
-	y := hw.ReadRegister(cc1101.SYNC0)
+	x := hw.ReadRegister(cc2500.SYNC1)
+	y := hw.ReadRegister(cc2500.SYNC0)
 	if r.Error() != nil {
 		log.Fatal(r.Error())
 	}
 	fmt.Printf("individual: %X %X\n", x, y)
-	v := hw.ReadBurst(cc1101.SYNC1, 2)
+	v := hw.ReadBurst(cc2500.SYNC1, 2)
 	if r.Error() != nil {
 		log.Fatal(r.Error())
 	}

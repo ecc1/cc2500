@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ecc1/cc1101"
+	"github.com/ecc1/cc2500"
 )
 
 func main() {
@@ -15,7 +15,7 @@ func main() {
 		log.Fatalf("Usage: %s frequency", os.Args[0])
 	}
 	frequency := getFrequency(os.Args[1])
-	r := cc1101.Open().(*cc1101.Radio)
+	r := cc2500.Open().(*cc2500.Radio)
 	if r.Error() != nil {
 		log.Fatal(r.Error())
 	}
@@ -33,10 +33,13 @@ func getFrequency(s string) uint32 {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if 860.0 <= f && f <= 920.0 {
-		return uint32(f * 1000000.0)
+	if 2.4 <= f && f <= 2.5 {
+		return uint32(f * 1e9)
 	}
-	if 860000000.0 <= f && f <= 920000000.0 {
+	if 2400 <= f && f <= 2500 {
+		return uint32(f * 1e6)
+	}
+	if 2400000000 <= f && f <= 2500000000 {
 		return uint32(f)
 	}
 	log.Fatalf("%s: invalid pump frequency", s)
