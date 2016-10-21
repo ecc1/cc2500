@@ -1,10 +1,10 @@
-package cc1101
+package cc2500
 
-// Register definitions for Texas Instruments CC1101.
+// Register definitions for Texas Instruments CC2500.
 
 const (
 	// Crystal frequency in Hz.
-	FXOSC = 24000000
+	FXOSC = 26000000
 
 	// SPI transaction header bits for read/write and burst/single access.
 	READ_MODE  = 1 << 7
@@ -113,7 +113,7 @@ type RfConfiguration struct {
 }
 
 // Configuration register values after reset,
-// according to data sheet section 29.1.
+// according to data sheet section 32.1.
 var ResetRfConfiguration = RfConfiguration{
 	IOCFG2:   0x29,
 	IOCFG1:   0x2E,
@@ -128,7 +128,7 @@ var ResetRfConfiguration = RfConfiguration{
 	CHANNR:   0x00,
 	FSCTRL1:  0x0F,
 	FSCTRL0:  0x00,
-	FREQ2:    0x1E,
+	FREQ2:    0x5E,
 	FREQ1:    0xC4,
 	FREQ0:    0xEC,
 	MDMCFG4:  2<<6 | 0xC<<0,
@@ -225,7 +225,7 @@ const (
 // Since these must be read with the burst access bit set,
 // it is included in the address for simplicity.
 const (
-	PARTNUM        = 0x70 // Part number for CC1101
+	PARTNUM        = 0x70 // Part number for CC2500
 	VERSION        = 0x71 // Current version number
 	FREQEST        = 0x72 // Frequency Offset Estimate
 	LQI            = 0x73 // Demodulator estimate for Link Quality

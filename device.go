@@ -1,4 +1,4 @@
-package cc1101
+package cc2500
 
 import (
 	"bytes"
@@ -9,14 +9,14 @@ import (
 
 const (
 	spiSpeed     = 6000000 // Hz
-	interruptPin = 46      // Intel Edison GPIO for receive interrupts
-	hwVersion    = 0x0014
+	interruptPin = 45      // Intel Edison GPIO for receive interrupts
+	hwVersion    = 0x8003
 )
 
 type flavor struct{}
 
 func (f flavor) Name() string {
-	return "CC1101"
+	return "CC2500"
 }
 
 func (f flavor) Speed() int {
@@ -34,7 +34,7 @@ func (f flavor) ReadSingleAddress(addr byte) byte {
 func (f flavor) ReadBurstAddress(addr byte) byte {
 	reg := addr & 0x3F
 	if 0x30 <= reg && reg <= 0x3D {
-		log.Panicf("no burst access for CC1101 status register %02X", reg)
+		log.Panicf("no burst access for CC2500 status register %02X", reg)
 	}
 	return READ_MODE | BURST_MODE | addr
 }

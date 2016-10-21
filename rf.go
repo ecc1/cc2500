@@ -1,4 +1,4 @@
-package cc1101
+package cc2500
 
 import (
 	"errors"
@@ -178,7 +178,7 @@ func (r *Radio) ReadModemConfig() (bool, uint8, uint32) {
 }
 
 func (r *Radio) ReadRSSI() int {
-	const rssi_offset = 74 // see data sheet section 17.3
+	const rssi_offset = 72 // see data sheet section 17.3
 	rssi := r.hw.ReadRegister(RSSI)
 	d := int(rssi)
 	if d >= 128 {
