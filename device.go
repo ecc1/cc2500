@@ -1,7 +1,6 @@
 package cc2500
 
 import (
-	"bytes"
 	"log"
 
 	"github.com/ecc1/radio"
@@ -48,10 +47,9 @@ func (f flavor) WriteBurstAddress(addr byte) byte {
 }
 
 type Radio struct {
-	hw            *radio.Hardware
-	receiveBuffer bytes.Buffer
-	stats         radio.Statistics
-	err           error
+	hw    *radio.Hardware
+	stats radio.Statistics
+	err   error
 }
 
 func Open() radio.Interface {

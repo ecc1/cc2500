@@ -11,14 +11,14 @@ func TestFrequency(t *testing.T) {
 		b       []byte
 		fApprox uint32 // 0 => equal to f
 	}{
-		{315000000, []byte{0x0D, 0x20, 0x00}, 0},
-		{915000000, []byte{0x26, 0x20, 0x00}, 0},
+		{2418000000, []byte{0x5D, 0x00, 0x00}, 0},
+		{2434250000, []byte{0x5D, 0xA0, 0x00}, 0},
 		// some that can't be represented exactly:
-		{434000000, []byte{0x12, 0x15, 0x55}, 433999877},
-		{868000000, []byte{0x24, 0x2A, 0xAB}, 868000122},
-		{916300000, []byte{0x26, 0x2D, 0xDE}, 916300048},
-		{916600000, []byte{0x26, 0x31, 0x11}, 916599975},
+		{2400000000, []byte{0x5C, 0x4E, 0xC5}, 2400000030},
+		{2403470000, []byte{0x5C, 0x70, 0xEF}, 2403469818},
+		{2425000000, []byte{0x5D, 0x44, 0xEC}, 2424999877},
 	}
+
 	for _, c := range cases {
 		b := frequencyToRegisters(c.f)
 		if !bytes.Equal(b, c.b) {

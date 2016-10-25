@@ -1,14 +1,8 @@
 package cc2500
 
 import (
-	"errors"
 	"log"
 	"unsafe"
-)
-
-var (
-	RxFifoOverflow  = errors.New("RXFIFO overflow")
-	TxFifoUnderflow = errors.New("TXFIFO underflow")
 )
 
 func (config *RfConfiguration) Bytes() []byte {
@@ -31,63 +25,64 @@ func (r *Radio) InitRF(frequency uint32) {
 	rf := ResetRfConfiguration
 	fb := frequencyToRegisters(frequency)
 
-	rf.IOCFG2 = 0x2F
-	rf.IOCFG1 = 0x2F
-
-	// Assert when sync word has been sent/received
+	// Asserts when sync word has been sent/received,
+	// and de-asserts at the end of the packet.
 	rf.IOCFG0 = 0x06
 
-	// 4 bytes in RX FIFO, 61 bytes in TX FIFO
-	rf.FIFOTHR = 0x00
+	rf.SYNC1 = 0xD3
+	rf.SYNC0 = 0x91
 
-	rf.SYNC1 = 0xFF
-	rf.SYNC0 = 0x00
-
-	rf.PKTCTRL1 = 4 << PKTCTRL1_PQT_SHIFT
-	rf.PKTCTRL0 = PKTCTRL0_LENGTH_CONFIG_INFINITE
+	rf.PKTCTRL1 = PKTCTRL1_APPEND_STATUS
+	rf.PKTCTRL0 = PKTCTRL0_CRC_EN | PKTCTRL0_LENGTH_CONFIG_VARIABLE
 
 	// Intermediate frequency
-	// 0x06 * 24 MHz / 2^10 == 140625 Hz
-	rf.FSCTRL1 = 0x06
+	// 0x09 * 26 MHz / 2^10 == 228515 Hz
+	rf.FSCTRL1 = 0x09
 
 	rf.FREQ2 = fb[0]
 	rf.FREQ1 = fb[1]
 	rf.FREQ0 = fb[2]
 
-	// CHANBW_E = 1, CHANBW_M = 1, DRATE_E = 9
-	// Channel BW = 24 MHz / (8 * (4 + CHANBW_M) * 2^CHANBW_E) == 300 kHz
-	rf.MDMCFG4 = 1<<MDMCFG4_CHANBW_E_SHIFT |
+	// See table 20 in data sheet.
+	// CHANBW_E = 0, CHANBW_M = 1, DRATE_E = 10
+	// Channel BW = 26 MHz / (8 * (4 + CHANBW_M) * 2^CHANBW_E) == 650 kHz
+	// This bandwidth is much wider than dexdrip uses, but it seems to be
+	// necessary.  See data sheet section 13 and Dexcom's FCC filing at
+	// https://apps.fcc.gov/eas/GetApplicationAttachment.html?id=1373548
+	rf.MDMCFG4 = 0<<MDMCFG4_CHANBW_E_SHIFT |
 		1<<MDMCFG4_CHANBW_M_SHIFT |
-		9<<MDMCFG4_DRATE_E_SHIFT
+		10<<MDMCFG4_DRATE_E_SHIFT
 
-	// DRATE_M = 102 (0x66)
-	// Data rate = (256 + DRATE_M) * 2^DRATE_E * 24 MHz / 2^28 == 16388 Baud
-	rf.MDMCFG3 = 0x66
+	// DRATE_M = 248 (0xF8)
+	// Data rate = (256 + DRATE_M) * 2^DRATE_E * 26 MHz / 2^28 == 49987 Baud
+	rf.MDMCFG3 = 0xF8
 
 	rf.MDMCFG2 = MDMCFG2_DEM_DCFILT_ON |
-		MDMCFG2_MOD_FORMAT_ASK_OOK |
-		MDMCFG2_SYNC_MODE_30_32_THRES
+		MDMCFG2_MOD_FORMAT_MSK |
+		MDMCFG2_SYNC_MODE_30_32
 
-	// CHANSPC_E = 2
+	// CHANSPC_E = 3
 	rf.MDMCFG1 = MDMCFG1_FEC_DIS |
-		MDMCFG1_NUM_PREAMBLE_24 |
-		2<<MDMCFG1_CHANSPC_E_SHIFT
+		MDMCFG1_NUM_PREAMBLE_2 |
+		3<<MDMCFG1_CHANSPC_E_SHIFT
 
-	// CHANSPC_M = 26 (0x1A)
-	// Channel spacing = (256 + CHANSPC_M) * 2^CHANSPC_E * 24 MHz / 2^18 == 103271 Hz
-	rf.MDMCFG0 = 0x1A
+	// CHANSPC_M = 59 (0x3B)
+	// Channel spacing = (256 + CHANSPC_M) * 2^CHANSPC_E * 26 MHz / 2^18 == 249938 Hz
+	rf.MDMCFG0 = 0x3B
+
+	rf.DEVIATN = 0x40
 
 	rf.MCSM2 = MCSM2_RX_TIME_END_OF_PACKET
 
-	rf.MCSM1 = MCSM1_CCA_MODE_RSSI_BELOW_UNLESS_RECEIVING |
+	rf.MCSM1 = MCSM1_CCA_MODE_ALWAYS |
 		MCSM1_RXOFF_MODE_IDLE |
 		MCSM1_TXOFF_MODE_IDLE
 
 	rf.MCSM0 = MCSM0_FS_AUTOCAL_FROM_IDLE
 
-	rf.FOCCFG = FOCCFG_FOC_PRE_K_3K |
-		FOCCFG_FOC_POST_K_PRE_K_OVER_2 |
-		FOCCFG_FOC_LIMIT_BW_OVER_2
+	rf.FOCCFG = FOCCFG_FOC_PRE_K_2K |
+		FOCCFG_FOC_POST_K_PRE_K |
+		FOCCFG_FOC_LIMIT_BW_OVER_4
 
 	rf.BSCFG = BSCFG_BS_PRE_KI_2KI |
 		BSCFG_BS_PRE_KP_3KP |
@@ -95,42 +90,39 @@ func (r *Radio) InitRF(frequency uint32) {
 		BSCFG_BS_POST_KP_PRE_KP |
 		BSCFG_BS_LIMIT_0
 
-	rf.AGCCTRL2 = AGCCTRL2_MAX_DVGA_GAIN_ALL |
+	rf.AGCCTRL2 = AGCCTRL2_MAX_DVGA_GAIN_BUT_1 |
 		AGCCTRL2_MAX_LNA_GAIN_0 |
-		AGCCTRL2_MAGN_TARGET_38dB
+		AGCCTRL2_MAGN_TARGET_36dB
 
 	rf.AGCCTRL1 = AGCCTRL1_AGC_LNA_PRIORITY_0 |
 		AGCCTRL1_CARRIER_SENSE_REL_THR_DISABLE |
 		AGCCTRL1_CARRIER_SENSE_ABS_THR_0DB
 
 	rf.AGCCTRL0 = AGCCTRL0_HYST_LEVEL_MEDIUM |
-		AGCCTRL0_WAIT_TIME_16 |
+		AGCCTRL0_WAIT_TIME_32 |
 		AGCCTRL0_AGC_FREEZE_NORMAL |
 		AGCCTRL0_FILTER_LENGTH_32
 
-	rf.FREND1 = 1<<FREND1_LNA_CURRENT_SHIFT |
-		1<<FREND1_LNA2MIX_CURRENT_SHIFT |
+	rf.FREND1 = 2<<FREND1_LNA_CURRENT_SHIFT |
+		3<<FREND1_LNA2MIX_CURRENT_SHIFT |
 		1<<FREND1_LODIV_BUF_CURRENT_RX_SHIFT |
 		2<<FREND1_MIX_CURRENT_SHIFT
 
 	// Use PA_TABLE 1 for transmitting '1' in ASK
 	// (PA_TABLE 0 is always used for '0')
 	rf.FREND0 = 1<<FREND0_LODIV_BUF_CURRENT_TX_SHIFT |
-		1<<FREND0_PA_POWER_SHIFT
+		0<<FREND0_PA_POWER_SHIFT
 
-	rf.FSCAL3 = 3<<6 | 2<<4 | 0x09
-	rf.FSCAL2 = 1<<5 | 0x0A // VCO high
+	rf.FSCAL3 = 2<<6 | 2<<4 | 0x09
+	rf.FSCAL2 = 0x0A
 	rf.FSCAL1 = 0x00
-	rf.FSCAL0 = 0x1F
+	rf.FSCAL0 = 0x20
 
 	rf.TEST2 = TEST2_RX_LOW_DATA_RATE_MAGIC
 	rf.TEST1 = TEST1_RX_LOW_DATA_RATE_MAGIC
-	rf.TEST0 = 2<<2 | 1 // disable VCO selection calibration
+	rf.TEST0 = 2<<2 | 1<<1 | 1<<0
 
 	r.WriteConfiguration(&rf)
-
-	// Power amplifier output settings (see section 24 of the data sheet)
-	r.hw.WriteBurst(PATABLE, []byte{0x00, 0xC0})
 }
 
 func (r *Radio) Frequency() uint32 {
@@ -149,6 +141,14 @@ func (r *Radio) SetFrequency(freq uint32) {
 func frequencyToRegisters(freq uint32) []byte {
 	f := (uint64(freq)<<16 + FXOSC/2) / FXOSC
 	return []byte{byte(f >> 16), byte(f >> 8), byte(f)}
+}
+
+func registerToFrequencyOffset(offset byte) int32 {
+	return int32(int32(int8(offset)) * FXOSC >> 14)
+}
+
+func frequencyOffsetToRegister(offset int32) byte {
+	return byte((int64(offset)<<14 + FXOSC/2) / FXOSC)
 }
 
 func (r *Radio) ReadIF() uint32 {
@@ -177,9 +177,8 @@ func (r *Radio) ReadModemConfig() (bool, uint8, uint32) {
 	return fec, minPreamble, chanspc
 }
 
-func (r *Radio) ReadRSSI() int {
+func registerToRSSI(rssi byte) int {
 	const rssi_offset = 72 // see data sheet section 17.3
-	rssi := r.hw.ReadRegister(RSSI)
 	d := int(rssi)
 	if d >= 128 {
 		d -= 256
@@ -187,35 +186,21 @@ func (r *Radio) ReadRSSI() int {
 	return d/2 - rssi_offset
 }
 
+func (r *Radio) ReadRSSI() int {
+	return registerToRSSI(r.hw.ReadRegister(RSSI))
+}
+
 func (r *Radio) ReadPaTable() []byte {
 	return r.hw.ReadBurst(PATABLE, 8)
 }
 
-// Per section 20 of data sheet, read NUM_RXBYTES
-// repeatedly until same value is returned twice.
 func (r *Radio) ReadNumRxBytes() byte {
-	last := byte(0)
-	read := false
-	for r.Error() == nil {
-		n := r.hw.ReadRegister(RXBYTES)
-		if n&RXFIFO_OVERFLOW != 0 {
-			r.err = RxFifoOverflow
-		}
-		n &= NUM_RXBYTES_MASK
-		if read && n == last {
-			return n
-		}
-		last = n
-		read = true
-	}
-	return 0
+	n := r.hw.ReadRegister(RXBYTES)
+	return n & NUM_RXBYTES_MASK
 }
 
 func (r *Radio) ReadNumTxBytes() byte {
 	n := r.hw.ReadRegister(TXBYTES)
-	if n&TXFIFO_UNDERFLOW != 0 {
-		r.err = TxFifoUnderflow
-	}
 	return n & NUM_TXBYTES_MASK
 }
 
