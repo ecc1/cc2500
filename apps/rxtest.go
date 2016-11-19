@@ -21,6 +21,7 @@ func main() {
 	}
 	log.Printf("setting frequency to %d", frequency)
 	r.Init(frequency)
+	log.Printf("actual frequency: %d", r.Frequency())
 	for r.Error() == nil {
 		data, rssi := r.Receive(time.Hour)
 		log.Printf("% X (RSSI = %d)", data, rssi)
