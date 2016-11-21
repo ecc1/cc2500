@@ -220,7 +220,9 @@ func (r *Radio) ReadNumTxBytes() byte {
 }
 
 func (r *Radio) changeState(strobe byte, desired byte) {
+	err := r.Error()
 	r.SetError(nil)
+	defer r.SetError(err)
 	s := r.ReadState()
 	if s == desired {
 		return
