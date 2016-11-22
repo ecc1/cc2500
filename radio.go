@@ -1,17 +1,15 @@
 package cc2500
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"time"
 )
 
 const (
-	verbose            = true
-	fifoSize           = 64
-
-	// Approximate time for one byte to be transmitted, based on the data rate.
-	byteDuration = time.Millisecond
+	verbose  = true
+	fifoSize = 64
 )
 
 func init() {
@@ -26,9 +24,9 @@ var (
 )
 
 const (
-	minRSSI         = math.MinInt8
-	deassertPoll    = 1500 * time.Microsecond
-	maxDeassertWait = 10 * time.Millisecond
+	minRSSI      = math.MinInt8
+	deassertPoll = 2 * time.Millisecond
+	maxWaitCount = 5
 )
 
 func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
@@ -38,29 +36,25 @@ func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 		log.Printf("waiting for interrupt in %s state", r.State())
 	}
 	r.hw.AwaitInterrupt(timeout)
-	waited := time.Duration(0)
-	for r.Error() == nil && r.hw.ReadInterrupt() {
+	for count := 0; r.Error() == nil && r.hw.ReadInterrupt(); count++ {
 		n := r.ReadNumRxBytes()
 		if verbose {
 			log.Printf("  interrupt still asserted; %d bytes in FIFO", n)
 		}
-		if n >= fifoSize || waited >= maxDeassertWait {
+		if n >= fifoSize {
 			break
 		}
 		time.Sleep(deassertPoll)
-		waited += deassertPoll
 	}
 	if r.Error() != nil {
 		return nil, minRSSI
 	}
 	numBytes := int(r.ReadNumRxBytes())
+	data := r.hw.ReadBurst(RXFIFO, numBytes)
 	if r.hw.ReadInterrupt() {
-		if verbose {
-			log.Printf("interrupt still asserted after %v with %d bytes in FIFO", maxDeassertWait, numBytes)
-		}
+		r.SetError(fmt.Errorf("interrupt still asserted with %d bytes in FIFO", numBytes))
 		return nil, minRSSI
 	}
-	data := r.hw.ReadBurst(RXFIFO, numBytes)
 	// Enter IDLE state before reading FREQEST.
 	// See Design Note DN015 (SWRA159).
 	r.changeState(SIDLE, STATE_IDLE)
