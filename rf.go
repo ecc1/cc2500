@@ -44,13 +44,12 @@ func (r *Radio) InitRF(frequency uint32) {
 	rf.FREQ0 = fb[2]
 
 	// See table 20 in data sheet.
-	// CHANBW_E = 0, CHANBW_M = 1, DRATE_E = 10
-	// Channel BW = 26 MHz / (8 * (4 + CHANBW_M) * 2^CHANBW_E) == 650 kHz
-	// This bandwidth is much wider than dexdrip uses, but it seems to be
-	// necessary.  See data sheet section 13 and Dexcom's FCC filing at
+	// CHANBW_E = 0, CHANBW_M = 3, DRATE_E = 10
+	// Channel BW = 26 MHz / (8 * (4 + CHANBW_M) * 2^CHANBW_E) == 464 kHz
+	// See data sheet section 13 and Dexcom's FCC filing at
 	// https://apps.fcc.gov/eas/GetApplicationAttachment.html?id=1373548
 	rf.MDMCFG4 = 0<<MDMCFG4_CHANBW_E_SHIFT |
-		1<<MDMCFG4_CHANBW_M_SHIFT |
+		3<<MDMCFG4_CHANBW_M_SHIFT |
 		10<<MDMCFG4_DRATE_E_SHIFT
 
 	// DRATE_M = 248 (0xF8)
