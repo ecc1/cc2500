@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	verbose  = true
+	verbose  = false
 	fifoSize = 64
 )
 
@@ -17,11 +17,6 @@ func init() {
 		log.SetFlags(log.Ltime | log.Lmicroseconds | log.LUTC)
 	}
 }
-
-var (
-	// Accumulated frequency offset from FREQEST values after good packets.
-	freqOffset uint8
-)
 
 const (
 	minRSSI      = math.MinInt8
@@ -94,13 +89,6 @@ func (r *Radio) verifyPacket(data []byte, numBytes int) ([]byte, int) {
 	if verbose {
 		log.Printf("received %d-byte packet with LQI = %d", len(packet), lqi)
 	}
-	freqEst := r.hw.ReadRegister(FREQEST)
-	freqOffset += freqEst
-	if verbose {
-		log.Printf("frequency  offset = %d Hz (%X)", registerToFrequencyOffset(freqEst), freqEst)
-		log.Printf("cumulative offset = %d Hz (%X)", registerToFrequencyOffset(freqOffset), freqOffset)
-	}
-	r.hw.WriteRegister(FSCTRL0, freqOffset)
 	r.stats.Packets.Received++
 	r.stats.Bytes.Received += numBytes
 	return packet, rssi
