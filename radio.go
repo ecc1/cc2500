@@ -59,9 +59,7 @@ func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 // Return the body of the packet (or nil if invalid) and the RSSI.
 func (r *Radio) verifyPacket(data []byte, numBytes int) ([]byte, int) {
 	if numBytes < 3 {
-		if verbose {
-			log.Printf("invalid %d-byte packet", numBytes)
-		}
+		r.SetError(fmt.Errorf("invalid %d-byte packet", numBytes))
 		return nil, minRSSI
 	}
 	lenByte := int(data[0])
@@ -71,15 +69,11 @@ func (r *Radio) verifyPacket(data []byte, numBytes int) ([]byte, int) {
 	lqi := status &^ (1 << 7)
 	packet := data[1 : numBytes-2]
 	if !crcOK {
-		if verbose {
-			log.Printf("invalid CRC for %d-byte packet", len(packet))
-		}
+		r.SetError(fmt.Errorf("invalid CRC for %d-byte packet", len(packet)))
 		return nil, rssi
 	}
 	if lenByte != len(packet) {
-		if verbose {
-			log.Printf("incorrect length byte (%d) for %d-byte packet", lenByte, len(packet))
-		}
+		r.SetError(fmt.Errorf("incorrect length byte (%d) for %d-byte packet", lenByte, len(packet)))
 		return nil, rssi
 	}
 	if verbose {
