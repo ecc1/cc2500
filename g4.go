@@ -11,10 +11,19 @@ const (
 	fastWait      = 550 * time.Millisecond
 )
 
-type Channel struct {
-	number uint8 // CHANNR value
-	offset uint8 // FSCTRL0 value
-}
+type (
+	Channel struct {
+		number uint8 // CHANNR value
+		offset uint8 // FSCTRL0 value
+	}
+
+	Packet struct {
+		Body []byte
+		RSSI int
+	}
+
+	Reading []Packet
+)
 
 var (
 	// With 250 kHz channel spacing, these channel numbers
@@ -28,29 +37,9 @@ var (
 	}
 )
 
-func (r *Radio) ChangeChannel(c Channel) {
+func (r *Radio) changeChannel(c Channel) {
 	r.hw.WriteRegister(CHANNR, c.number)
 	r.hw.WriteRegister(FSCTRL0, c.offset)
-}
-
-func (r *Radio) ScanChannels() {
-	r.Init(baseFrequency)
-	for {
-		waitTime := slowWait
-		for n, c := range channels {
-			log.Printf("listening on channel %d", n)
-			r.ChangeChannel(c)
-			data, rssi := r.Receive(waitTime)
-			if r.Error() != nil {
-				log.Print(r.Error())
-				r.SetError(nil)
-				continue
-			}
-			log.Printf("% X (RSSI = %d)", data, rssi)
-			r.adjustFrequency(c)
-			waitTime = fastWait
-		}
-	}
 }
 
 func (r *Radio) adjustFrequency(c Channel) {
@@ -59,8 +48,42 @@ func (r *Radio) adjustFrequency(c Channel) {
 	c.offset = offset + freqEst
 	r.hw.WriteRegister(FSCTRL0, c.offset)
 	if verbose {
-		log.Printf("FREQEST = %d Hz (%X)", registerToFrequencyOffset(freqEst), freqEst)
-		log.Printf("FSCTRL0 = %d Hz (%X)", registerToFrequencyOffset(offset), offset)
-		log.Printf("offset  = %d Hz (%X)", registerToFrequencyOffset(c.offset), c.offset)
+		printFrequency("FREQEST", freqEst)
+		printFrequency("FSCTRL0", offset)
+		printFrequency("offset ", c.offset)
 	}
+}
+
+func printFrequency(label string, f byte) {
+	log.Printf("%s = %d Hz (%X)", label, registerToFrequencyOffset(f), f)
+}
+
+func (r *Radio) scanChannels(readings chan<- Reading) {
+	r.Init(baseFrequency)
+	for {
+		waitTime := slowWait
+		v := []Packet{}
+		for n, c := range channels {
+			if verbose {
+				log.Printf("listening on channel %d", n)
+			}
+			r.changeChannel(c)
+			data, rssi := r.Receive(waitTime)
+			if r.Error() != nil {
+				log.Print(r.Error())
+				r.SetError(nil)
+				continue
+			}
+			r.adjustFrequency(c)
+			v = append(v, Packet{Body: data, RSSI: rssi})
+			waitTime = fastWait
+		}
+		readings <- v
+	}
+}
+
+func (r *Radio) ReceiveReadings() <-chan Reading {
+	readings := make(chan Reading, 10)
+	go r.scanChannels(readings)
+	return readings
 }
