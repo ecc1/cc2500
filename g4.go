@@ -7,8 +7,13 @@ import (
 
 const (
 	baseFrequency = 2425000000
-	slowWait      = 6 * time.Minute
-	fastWait      = 550 * time.Millisecond
+
+	slowWait = 6 * time.Minute
+	fastWait = 550 * time.Millisecond
+	syncWait = 200 * time.Millisecond
+
+	readingInterval = 5 * time.Minute
+	wakeupMargin    = 100 * time.Millisecond
 )
 
 type (
@@ -59,26 +64,44 @@ func printFrequency(label string, f byte) {
 }
 
 func (r *Radio) scanChannels(readings chan<- Reading) {
+	inSync := false
+	lastReading := time.Time{}
 	r.Init(baseFrequency)
 	for {
 		waitTime := slowWait
 		v := []Packet{}
 		for n, c := range channels {
 			if verbose {
-				log.Printf("listening on channel %d", n)
+				log.Printf("listening on channel %d; sync = %v", n, inSync)
 			}
 			r.changeChannel(c)
+			if n == 0 && inSync {
+				t := time.Now().Add(wakeupMargin)
+				sleepTime := lastReading.Add(readingInterval).Sub(t)
+				if verbose {
+					log.Printf("sleeping for %v in %s state", sleepTime, r.State())
+				}
+				time.Sleep(sleepTime)
+				waitTime = syncWait
+			}
 			data, rssi := r.Receive(waitTime)
 			if r.Error() != nil {
 				log.Print(r.Error())
 				r.SetError(nil)
 				continue
 			}
+			inSync = true
+			if n == 0 {
+				lastReading = time.Now()
+			}
 			r.adjustFrequency(c)
 			v = append(v, Packet{Body: data, RSSI: rssi})
 			waitTime = fastWait
 		}
 		readings <- v
+		if len(v) == 0 {
+			inSync = false
+		}
 	}
 }
 
