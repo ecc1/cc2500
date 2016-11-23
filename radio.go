@@ -41,13 +41,12 @@ func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 		}
 		time.Sleep(deassertPoll)
 	}
-	if r.Error() != nil {
-		return nil, minRSSI
-	}
 	numBytes := int(r.ReadNumRxBytes())
 	data := r.hw.ReadBurst(RXFIFO, numBytes)
 	if r.hw.ReadInterrupt() {
 		r.SetError(fmt.Errorf("interrupt still asserted with %d bytes in FIFO", numBytes))
+	}
+	if r.Error() != nil {
 		return nil, minRSSI
 	}
 	// Enter IDLE state before reading FREQEST.
@@ -59,9 +58,6 @@ func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 // Check whether packet has correct length byte and valid CRC.
 // Return the body of the packet (or nil if invalid) and the RSSI.
 func (r *Radio) verifyPacket(data []byte, numBytes int) ([]byte, int) {
-	if r.Error() != nil {
-		return nil, minRSSI
-	}
 	if numBytes < 3 {
 		if verbose {
 			log.Printf("invalid %d-byte packet", numBytes)
