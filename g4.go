@@ -8,12 +8,14 @@ import (
 const (
 	baseFrequency = 2425000000
 
-	slowWait = 6 * time.Minute
-	fastWait = 550 * time.Millisecond
-	syncWait = 200 * time.Millisecond
-
 	readingInterval = 5 * time.Minute
-	wakeupMargin    = 100 * time.Millisecond
+	channelInterval = 500 * time.Millisecond
+
+	wakeupMargin = 100 * time.Millisecond
+
+	slowWait = readingInterval + 1*time.Minute
+	fastWait = channelInterval + 50*time.Millisecond
+	syncWait = wakeupMargin + 100*time.Millisecond
 )
 
 type (
@@ -78,10 +80,12 @@ func (r *Radio) scanChannels(readings chan<- Reading) {
 			if n == 0 && inSync {
 				t := time.Now().Add(wakeupMargin)
 				sleepTime := lastReading.Add(readingInterval).Sub(t)
-				if verbose {
-					log.Printf("sleeping for %v in %s state", sleepTime, r.State())
+				if sleepTime > 0 {
+					if verbose {
+						log.Printf("sleeping for %v in %s state", sleepTime, r.State())
+					}
+					time.Sleep(sleepTime)
 				}
-				time.Sleep(sleepTime)
 				waitTime = syncWait
 			}
 			data, rssi := r.Receive(waitTime)
@@ -93,6 +97,8 @@ func (r *Radio) scanChannels(readings chan<- Reading) {
 			inSync = true
 			if n == 0 {
 				lastReading = time.Now()
+			} else if len(v) == 0 {
+				lastReading = time.Now().Add(-time.Duration(n) * channelInterval)
 			}
 			r.adjustFrequency(c)
 			v = append(v, Packet{Body: data, RSSI: rssi})
