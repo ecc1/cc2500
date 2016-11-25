@@ -29,7 +29,7 @@ type (
 		RSSI int
 	}
 
-	Reading []Packet
+	Reading *Packet
 )
 
 var (
@@ -71,7 +71,7 @@ func (r *Radio) scanChannels(readings chan<- Reading) {
 	r.Init(baseFrequency)
 	for {
 		waitTime := slowWait
-		v := []Packet{}
+		p := (*Packet)(nil)
 		for n, c := range channels {
 			if verbose {
 				log.Printf("listening on channel %d; sync = %v", n, inSync)
@@ -89,23 +89,19 @@ func (r *Radio) scanChannels(readings chan<- Reading) {
 				waitTime = syncWait
 			}
 			data, rssi := r.Receive(waitTime)
-			if r.Error() != nil {
-				log.Print(r.Error())
-				r.SetError(nil)
-				continue
-			}
-			inSync = true
-			if n == 0 {
-				lastReading = time.Now()
-			} else if len(v) == 0 {
+			if r.Error() == nil {
+				inSync = true
 				lastReading = time.Now().Add(-time.Duration(n) * channelInterval)
+				r.adjustFrequency(c)
+				p = &Packet{Body: data, RSSI: rssi}
+				break
 			}
-			r.adjustFrequency(c)
-			v = append(v, Packet{Body: data, RSSI: rssi})
+			log.Print(r.Error())
+			r.SetError(nil)
 			waitTime = fastWait
 		}
-		readings <- v
-		if len(v) == 0 {
+		readings <- p
+		if p == nil {
 			inSync = false
 		}
 	}
