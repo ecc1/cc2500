@@ -23,7 +23,7 @@ func main() {
 			numReadings = 0
 		case p := <-readings:
 			if p != nil {
-				log.Printf("% X (RSSI = %d)", p.Body, p.RSSI)
+				log.Printf("%+v", *p)
 				numReadings++
 			}
 		}

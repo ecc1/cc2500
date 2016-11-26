@@ -24,11 +24,6 @@ type (
 		offset uint8 // FSCTRL0 value
 	}
 
-	Packet struct {
-		Body []byte
-		RSSI int
-	}
-
 	Reading *Packet
 )
 
@@ -93,7 +88,7 @@ func (r *Radio) scanChannels(readings chan<- Reading) {
 				inSync = true
 				lastReading = time.Now().Add(-time.Duration(n) * channelInterval)
 				r.adjustFrequency(c)
-				p = &Packet{Body: data, RSSI: rssi}
+				p = makePacket(data, rssi)
 				break
 			}
 			log.Print(r.Error())

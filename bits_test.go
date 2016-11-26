@@ -33,6 +33,23 @@ func TestReverseBits(t *testing.T) {
 	}
 }
 
+func TestUnmarshalUint16(t *testing.T) {
+	cases := []struct {
+		val uint16
+		rep []byte
+	}{
+		{0x1234, []byte{0x34, 0x12}},
+		{0, []byte{0, 0}},
+		{math.MaxUint16, []byte{0xFF, 0xFF}},
+	}
+	for _, c := range cases {
+		val := unmarshalUint16(c.rep)
+		if val != c.val {
+			t.Errorf("unmarshalUint16(% X) == %04X, want %04X", c.rep, val, c.val)
+		}
+	}
+}
+
 func TestUnarshalUint32(t *testing.T) {
 	cases := []struct {
 		val uint32
@@ -63,6 +80,28 @@ func TestTransmitterID(t *testing.T) {
 		id := transmitterID(c.rep)
 		if id != c.id {
 			t.Errorf("transmitterID(% X) == %q, want %q", c.rep, id, c.id)
+		}
+	}
+}
+
+func TestUnmarshalReadings(t *testing.T) {
+	cases := []struct {
+		v []byte
+		f uint32
+		u uint32
+	}{
+		{[]byte{0xB8, 0xCD, 0x2E, 0x29}, 156576, 167552},
+		{[]byte{0x39, 0x4D, 0x89, 0xC9}, 152448, 160288},
+		{[]byte{0x59, 0x8D, 0x12, 0x49}, 144192, 149760},
+	}
+	for _, c := range cases {
+		f := unmarshalReading(c.v[0:2])
+		if f != c.f {
+			t.Errorf("unmarshalReading(% X) == %d, want %d", c.v[0:2], f, c.f)
+		}
+		u := 2 * unmarshalReading(c.v[2:4])
+		if u != c.u {
+			t.Errorf("unmarshalReading(% X) == %d, want %d", c.v[2:4], u, c.u)
 		}
 	}
 }
