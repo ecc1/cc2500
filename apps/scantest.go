@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -8,7 +10,6 @@ import (
 )
 
 func main() {
-	log.SetFlags(log.Ltime | log.Lmicroseconds | log.LUTC)
 	r := cc2500.Open().(*cc2500.Radio)
 	hours := time.Tick(1 * time.Hour)
 	readings := r.ReceiveReadings()
@@ -19,13 +20,23 @@ func main() {
 		}
 		select {
 		case <-hours:
-			log.Printf("%d readings in previous hour", numReadings)
+			fmt.Printf("%d readings in previous hour\n", numReadings)
 			numReadings = 0
-		case p := <-readings:
-			if p != nil {
-				log.Printf("%+v", *p)
+		case reading := <-readings:
+			if reading != nil {
+				print(reading)
 				numReadings++
 			}
 		}
+	}
+}
+
+func print(r cc2500.Reading) {
+	b, err := json.MarshalIndent(*r, "", "  ")
+	if err != nil {
+		fmt.Println(err)
+		fmt.Printf("%+v\n", *r)
+	} else {
+		fmt.Println(string(b))
 	}
 }
