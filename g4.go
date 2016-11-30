@@ -85,10 +85,11 @@ func (r *Radio) scanChannels(readings chan<- Reading) {
 			}
 			data, rssi := r.Receive(waitTime)
 			if r.Error() == nil {
+				now := time.Now()
 				inSync = true
-				lastReading = time.Now().Add(-time.Duration(n) * channelInterval)
+				lastReading = now.Add(-time.Duration(n) * channelInterval)
 				r.adjustFrequency(c)
-				p = makePacket(data, rssi)
+				p = makePacket(now, data, rssi)
 				break
 			}
 			log.Print(r.Error())
