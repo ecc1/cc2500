@@ -6,6 +6,7 @@ import (
 
 type Packet struct {
 	Timestamp     time.Time
+	Channel       int
 	TransmitterID string
 	Raw           uint32
 	Filtered      uint32
@@ -13,9 +14,10 @@ type Packet struct {
 	RSSI          int
 }
 
-func makePacket(t time.Time, data []byte, rssi int) *Packet {
+func makePacket(t time.Time, n int, data []byte, rssi int) *Packet {
 	return &Packet{
 		Timestamp:     t,
+		Channel:       n,
 		TransmitterID: transmitterID(data[4:8]),
 		Raw:           unmarshalReading(data[11:13]),
 		Filtered:      2 * unmarshalReading(data[13:15]),

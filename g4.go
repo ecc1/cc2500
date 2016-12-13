@@ -31,7 +31,7 @@ var (
 	// With 250 kHz channel spacing, these channel numbers
 	// correspond to the frequencies below.  The initial
 	// FSCTRL0 offsets were determined empirically.
-	channels = []Channel{
+	Channels = []Channel{
 		{000, 0xBE}, // 2425 MHz
 		{100, 0xBE}, // 2450 MHz
 		{199, 0xBE}, // 2474.75 MHz
@@ -39,12 +39,18 @@ var (
 	}
 )
 
-func (r *Radio) changeChannel(c Channel) {
+func (r *Radio) changeChannel(i int) {
+	c := Channels[i]
+	if verbose {
+		log.Printf("changing to channel %d", i)
+		printFrequency("offset ", c.offset)
+	}
 	r.hw.WriteRegister(CHANNR, c.number)
 	r.hw.WriteRegister(FSCTRL0, c.offset)
 }
 
-func (r *Radio) adjustFrequency(c Channel) {
+func (r *Radio) adjustFrequency(i int) {
+	c := &Channels[i]
 	freqEst := r.hw.ReadRegister(FREQEST)
 	offset := r.hw.ReadRegister(FSCTRL0)
 	c.offset = offset + freqEst
@@ -67,11 +73,11 @@ func (r *Radio) scanChannels(readings chan<- Reading) {
 	for {
 		waitTime := slowWait
 		p := (*Packet)(nil)
-		for n, c := range channels {
+		for n := range Channels {
 			if verbose {
 				log.Printf("listening on channel %d; sync = %v", n, inSync)
 			}
-			r.changeChannel(c)
+			r.changeChannel(n)
 			if n == 0 && inSync {
 				t := time.Now().Add(wakeupMargin)
 				sleepTime := lastReading.Add(readingInterval).Sub(t)
@@ -88,8 +94,8 @@ func (r *Radio) scanChannels(readings chan<- Reading) {
 				now := time.Now()
 				inSync = true
 				lastReading = now.Add(-time.Duration(n) * channelInterval)
-				r.adjustFrequency(c)
-				p = makePacket(now, data, rssi)
+				r.adjustFrequency(n)
+				p = makePacket(now, n, data, rssi)
 				break
 			}
 			log.Print(r.Error())
