@@ -18,7 +18,7 @@ func makePacket(t time.Time, n int, data []byte, rssi int) *Packet {
 	return &Packet{
 		Timestamp:     t,
 		Channel:       n,
-		TransmitterID: transmitterID(data[4:8]),
+		TransmitterID: unmarshalTransmitterID(data[4:8]),
 		Raw:           unmarshalReading(data[11:13]),
 		Filtered:      2 * unmarshalReading(data[13:15]),
 		Battery:       data[15],
@@ -45,7 +45,7 @@ func unmarshalUint32(v []byte) uint32 {
 
 // The 5-character transmitter ID is encoded as a sequence of 5-bit symbols
 // in a left-padded, little-endian 32-bit integer.
-func transmitterID(v []byte) string {
+func unmarshalTransmitterID(v []byte) string {
 	u := unmarshalUint32(v)
 	id := make([]byte, 5)
 	for i := 0; i < 5; i++ {

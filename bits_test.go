@@ -67,7 +67,7 @@ func TestUnarshalUint32(t *testing.T) {
 	}
 }
 
-func TestTransmitterID(t *testing.T) {
+func TestUnmarshalTransmitterID(t *testing.T) {
 	cases := []struct {
 		rep []byte
 		id  string
@@ -77,9 +77,9 @@ func TestTransmitterID(t *testing.T) {
 		{[]byte{0xAE, 0xD1, 0x63, 0x00}, "67LDE"},
 	}
 	for _, c := range cases {
-		id := transmitterID(c.rep)
+		id := unmarshalTransmitterID(c.rep)
 		if id != c.id {
-			t.Errorf("transmitterID(% X) == %q, want %q", c.rep, id, c.id)
+			t.Errorf("unmarshalTransmitterID(% X) == %q, want %q", c.rep, id, c.id)
 		}
 	}
 }
