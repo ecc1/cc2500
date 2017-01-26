@@ -32,7 +32,7 @@ func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 	}
 	r.hw.AwaitInterrupt(timeout)
 	for count := 0; r.Error() == nil && r.hw.ReadInterrupt(); count++ {
-		n := r.ReadNumRxBytes()
+		n := r.ReadNumRXBytes()
 		if verbose {
 			log.Printf("  interrupt still asserted; %d bytes in FIFO", n)
 		}
@@ -41,7 +41,7 @@ func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 		}
 		time.Sleep(deassertPoll)
 	}
-	numBytes := int(r.ReadNumRxBytes())
+	numBytes := int(r.ReadNumRXBytes())
 	data := r.hw.ReadBurst(RXFIFO, numBytes)
 	if r.hw.ReadInterrupt() {
 		r.SetError(fmt.Errorf("interrupt still asserted with %d bytes in FIFO", numBytes))

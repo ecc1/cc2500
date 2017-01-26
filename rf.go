@@ -5,24 +5,24 @@ import (
 	"unsafe"
 )
 
-func (config *RfConfiguration) Bytes() []byte {
+func (config *RFConfiguration) Bytes() []byte {
 	return (*[TEST0 - IOCFG2 + 1]byte)(unsafe.Pointer(config))[:]
 }
 
-func (r *Radio) ReadConfiguration() *RfConfiguration {
+func (r *Radio) ReadConfiguration() *RFConfiguration {
 	if r.Error() != nil {
 		return nil
 	}
 	regs := r.hw.ReadBurst(IOCFG2, TEST0-IOCFG2+1)
-	return (*RfConfiguration)(unsafe.Pointer(&regs[0]))
+	return (*RFConfiguration)(unsafe.Pointer(&regs[0]))
 }
 
-func (r *Radio) WriteConfiguration(config *RfConfiguration) {
+func (r *Radio) WriteConfiguration(config *RFConfiguration) {
 	r.hw.WriteBurst(IOCFG2, config.Bytes())
 }
 
 func (r *Radio) InitRF(frequency uint32) {
-	rf := ResetRfConfiguration
+	rf := ResetRFConfiguration
 	fb := frequencyToRegisters(frequency)
 
 	// Asserts when sync word has been sent/received,
@@ -189,16 +189,16 @@ func (r *Radio) ReadRSSI() int {
 	return registerToRSSI(r.hw.ReadRegister(RSSI))
 }
 
-func (r *Radio) ReadPaTable() []byte {
+func (r *Radio) ReadPATable() []byte {
 	return r.hw.ReadBurst(PATABLE, 8)
 }
 
-func (r *Radio) ReadNumRxBytes() byte {
+func (r *Radio) ReadNumRXBytes() byte {
 	n := r.hw.ReadRegister(RXBYTES)
 	return n & NUM_RXBYTES_MASK
 }
 
-func (r *Radio) ReadNumTxBytes() byte {
+func (r *Radio) ReadNumTXBytes() byte {
 	n := r.hw.ReadRegister(TXBYTES)
 	return n & NUM_TXBYTES_MASK
 }
@@ -245,11 +245,11 @@ func StateName(state byte) string {
 	return stateName[state]
 }
 
-func (r *Radio) ReadMarcState() byte {
+func (r *Radio) ReadMARCState() byte {
 	return r.hw.ReadRegister(MARCSTATE) & MARCSTATE_MASK
 }
 
-func MarcStateName(state byte) string {
+func MARCStateName(state byte) string {
 	return marcState[state]
 }
 
