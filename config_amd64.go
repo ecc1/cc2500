@@ -5,5 +5,6 @@ package cc2500
 const (
 	spiDevice    = "/dev/null"
 	spiSpeed     = 0
+	customCS     = 0
 	interruptPin = 0
 )
