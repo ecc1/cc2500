@@ -21,9 +21,10 @@ func init() {
 const (
 	minRSSI      = math.MinInt8
 	deassertPoll = 2 * time.Millisecond
-	maxWaitCount = 5
 )
 
+// Receive listens with the given timeout for an incoming packet.
+// It returns the packet and the associated RSSI.
 func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 	r.changeState(SRX, STATE_RX)
 	defer r.changeState(SIDLE, STATE_IDLE)
@@ -84,6 +85,7 @@ func (r *Radio) verifyPacket(data []byte, numBytes int) ([]byte, int) {
 	return packet, rssi
 }
 
+// Send transmits the given packet.
 func (r *Radio) Send(data []byte) {
 	panic("unimplemented")
 }

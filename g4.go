@@ -19,18 +19,20 @@ const (
 )
 
 type (
+	// Channel contains information about a channel register and frequency offset.
 	Channel struct {
 		number uint8 // CHANNR value
 		offset uint8 // FSCTRL0 value
 	}
 
+	// Reading is a pointer to a Packet.
 	Reading *Packet
 )
 
 var (
-	// With 250 kHz channel spacing, these channel numbers
-	// correspond to the frequencies below.  The initial
-	// FSCTRL0 offsets were determined empirically.
+	// Channels contains the channel numbers for the listed frequencies,
+	// assuming 250 kHz channel spacing.
+	// The initial FSCTRL0 offsets were determined empirically.
 	Channels = []Channel{
 		{000, 0xBE}, // 2425 MHz
 		{100, 0xBE}, // 2450 MHz
@@ -109,6 +111,8 @@ func (r *Radio) scanChannels(readings chan<- Reading) {
 	}
 }
 
+// ReceiveReadings starts a goroutine to listen for incoming packets
+// and returns a channel that can be used to receive them.
 func (r *Radio) ReceiveReadings() <-chan Reading {
 	readings := make(chan Reading, 10)
 	go r.scanChannels(readings)

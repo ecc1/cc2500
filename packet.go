@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// Packet represents a Dexcom G4 packet.
 type Packet struct {
 	Timestamp     time.Time
 	Channel       int
@@ -26,7 +27,7 @@ func makePacket(t time.Time, n int, data []byte, rssi int) *Packet {
 	}
 }
 
-var transmitterIdChar = []byte{
+var transmitterIDChar = []byte{
 	'0', '1', '2', '3', '4', '5', '6', '7',
 	'8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
 	'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P',
@@ -50,7 +51,7 @@ func unmarshalTransmitterID(v []byte) string {
 	id := make([]byte, 5)
 	for i := 0; i < 5; i++ {
 		n := byte(u>>uint(20-5*i)) & 0x1F
-		id[i] = transmitterIdChar[n]
+		id[i] = transmitterIDChar[n]
 	}
 	return string(id)
 }
