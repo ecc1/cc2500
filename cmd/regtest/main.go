@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	r := cc2500.Open().(*cc2500.Radio)
+	r := cc2500.Open()
 	if r.Error() != nil {
 		log.Fatal(r.Error())
 	}

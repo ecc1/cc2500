@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	r := cc2500.Open().(*cc2500.Radio)
+	r := cc2500.Open()
 	hw := r.Hardware()
 	log.Printf("connected to %s radio on %s", hw.Name(), hw.Device())
 	hours := time.Tick(1 * time.Hour)
