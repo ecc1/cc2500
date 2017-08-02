@@ -5,34 +5,6 @@ import (
 	"testing"
 )
 
-func TestReverseBits(t *testing.T) {
-	cases := []struct {
-		b   byte
-		rev byte
-	}{
-		{0x00, 0x00},
-		{0x01, 0x80},
-		{0x0F, 0xF0},
-		{0x05, 0xA0},
-		{0x55, 0xAA},
-		{0xFF, 0xFF},
-	}
-	for _, c := range cases {
-		rev := reverseBits[c.b]
-		if rev != c.rev {
-			t.Errorf("reverseBits[%08b] == %08b, want %08b", c.b, rev, c.rev)
-		}
-	}
-	// Test that bit-reversal is self-inverse.
-	for i := 0; i < 256; i++ {
-		b := byte(i)
-		j := reverseBits[reverseBits[b]]
-		if j != b {
-			t.Errorf("reverseBits[reverseBits[%08b]] == %08b, want %08b", b, j, b)
-		}
-	}
-}
-
 func TestUnmarshalUint16(t *testing.T) {
 	cases := []struct {
 		val uint16
