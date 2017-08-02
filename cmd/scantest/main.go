@@ -33,7 +33,7 @@ func main() {
 	}
 }
 
-func print(r cc2500.Reading) {
+func print(r *cc2500.Packet) {
 	b, err := json.MarshalIndent(*r, "", "  ")
 	if err != nil {
 		fmt.Println(err)
