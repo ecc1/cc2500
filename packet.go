@@ -8,6 +8,7 @@ import (
 type Packet struct {
 	Timestamp     time.Time
 	Channel       int
+	Data          []byte
 	TransmitterID string
 	Raw           uint32
 	Filtered      uint32
@@ -15,23 +16,30 @@ type Packet struct {
 	RSSI          int
 }
 
-func makePacket(t time.Time, n int, data []byte, rssi int) *Packet {
+// Wire format of Dexcom G4 packet:
+//	0..3: destination address (always FF FF FF FF = broadcast)
+//	4..7: transmitter ID
+//	8: port? (always 3F)
+//	9: device info? (always 03)
+//	10: sequence number
+//	11..12: raw reading
+//	13..14: filtered reading
+//	15: battery level
+//	16: unknown
+//	17: checksum
+const packetLength = 18
+
+func unmarshalPacket(t time.Time, n int, data []byte, rssi int) *Packet {
 	return &Packet{
 		Timestamp:     t,
 		Channel:       n,
+		Data:          data,
 		TransmitterID: unmarshalTransmitterID(data[4:8]),
 		Raw:           unmarshalReading(data[11:13]),
 		Filtered:      2 * unmarshalReading(data[13:15]),
 		Battery:       data[15],
 		RSSI:          rssi,
 	}
-}
-
-var transmitterIDChar = []byte{
-	'0', '1', '2', '3', '4', '5', '6', '7',
-	'8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
-	'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P',
-	'Q', 'R', 'S', 'T', 'U', 'W', 'X', 'Y',
 }
 
 // Unmarshal a little-endian uint16.
@@ -42,6 +50,13 @@ func unmarshalUint16(v []byte) uint16 {
 // Unmarshal a little-endian uint32.
 func unmarshalUint32(v []byte) uint32 {
 	return uint32(unmarshalUint16(v[0:2])) | uint32(unmarshalUint16(v[2:4]))<<16
+}
+
+var transmitterIDChar = []byte{
+	'0', '1', '2', '3', '4', '5', '6', '7',
+	'8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
+	'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P',
+	'Q', 'R', 'S', 'T', 'U', 'W', 'X', 'Y',
 }
 
 // The 5-character transmitter ID is encoded as a sequence of 5-bit symbols
