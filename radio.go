@@ -79,17 +79,17 @@ func (r *Radio) verifyPacket(data []byte, numBytes int) ([]byte, int) {
 	status := data[numBytes-1]
 	crcOK := status&(1<<7) != 0
 	if !crcOK {
-		r.SetError(fmt.Errorf("invalid CRC: % X", data))
+		r.SetError(fmt.Errorf("invalid CRC: % X (RSSI %d)", data, rssi))
 		return nil, rssi
 	}
 	lqi := status &^ (1 << 7)
 	if lenByte != numBytes-3 {
-		r.SetError(fmt.Errorf("incorrect length byte: % X", data))
+		r.SetError(fmt.Errorf("incorrect length: % X (RSSI %d)", data, rssi))
 		return nil, rssi
 	}
 	packet := data[1 : numBytes-2]
 	if verbose {
-		log.Printf("received packet with RSSI = %d, LQI = %02X: % X", rssi, lqi, packet)
+		log.Printf("received packet with RSSI %d, LQI %02X: % X", rssi, lqi, packet)
 	}
 	r.stats.Packets.Received++
 	r.stats.Bytes.Received += numBytes
