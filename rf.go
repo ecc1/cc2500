@@ -1,8 +1,16 @@
 package cc2500
 
 import (
-	"log"
+	"errors"
 	"unsafe"
+)
+
+var (
+	// ErrRXFIFOOverflow indicates a RXFIFO overflow condition.
+	ErrRXFIFOOverflow = errors.New("RXFIFO overflow")
+
+	// ErrTXFIFOUnderflow indicates a TXFIFO underflow condition.
+	ErrTXFIFOUnderflow = errors.New("TXFIFO underflow")
 )
 
 // Bytes returns the RFConfiguration as a byte slice.
@@ -37,7 +45,7 @@ func (r *Radio) InitRF(frequency uint32) {
 	rf.SYNC1 = 0xD3
 	rf.SYNC0 = 0x91
 
-	rf.PKTCTRL1 = PKTCTRL1_APPEND_STATUS
+	rf.PKTCTRL1 = PKTCTRL1_APPEND_STATUS | PKTCTRL1_ADR_CHK_NONE
 	rf.PKTCTRL0 = PKTCTRL0_CRC_EN | PKTCTRL0_LENGTH_CONFIG_VARIABLE
 
 	// Intermediate frequency
@@ -127,6 +135,9 @@ func (r *Radio) InitRF(frequency uint32) {
 	rf.TEST0 = 2<<2 | 1<<1 | 1<<0
 
 	r.WriteConfiguration(&rf)
+
+	// Power amplifier output settings (see section 24 of the data sheet)
+	r.hw.WriteRegister(PATABLE, 0xBB)
 }
 
 // Frequency returns the radio's current frequency, in Hertz.
@@ -207,45 +218,26 @@ func (r *Radio) ReadPATable() []byte {
 	return r.hw.ReadBurst(PATABLE, 8)
 }
 
-// ReadNumRXBytes reads the RXBYTES register.
+// ReadNumRXBytes reads the RXBYTES register
+// and detects RXFIFO overflow.
 func (r *Radio) ReadNumRXBytes() byte {
 	n := r.hw.ReadRegister(RXBYTES)
+	if n&RXFIFO_OVERFLOW != 0 {
+		r.Strobe(SFRX)
+		r.err = ErrRXFIFOOverflow
+	}
 	return n & NUM_RXBYTES_MASK
 }
 
-// ReadNumTXBytes reads the TXBYTES register.
+// ReadNumTXBytes reads the TXBYTES register
+// and detects TXFIFO underflow.
 func (r *Radio) ReadNumTXBytes() byte {
 	n := r.hw.ReadRegister(TXBYTES)
+	if n&TXFIFO_UNDERFLOW != 0 {
+		r.Strobe(SFTX)
+		r.err = ErrTXFIFOUnderflow
+	}
 	return n & NUM_TXBYTES_MASK
-}
-
-func (r *Radio) changeState(strobe byte, desired byte) {
-	err := r.Error()
-	r.SetError(nil)
-	defer r.SetError(err)
-	s := r.ReadState()
-	if s == desired {
-		return
-	}
-	if verbose {
-		log.Printf("change from %s to %s", StateName(s), StateName(desired))
-	}
-	for r.Error() == nil {
-		switch s {
-		case desired:
-			return
-		case STATE_RXFIFO_OVERFLOW:
-			s = r.Strobe(SFRX)
-		case STATE_TXFIFO_UNDERFLOW:
-			s = r.Strobe(SFTX)
-		default:
-			s = r.Strobe(strobe)
-		}
-		s = (s >> STATE_SHIFT) & STATE_MASK
-		if verbose {
-			log.Printf("  %s", StateName(s))
-		}
-	}
 }
 
 // State returns the radio's current state as a string.

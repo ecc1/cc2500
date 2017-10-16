@@ -33,8 +33,8 @@ var ErrReceiveTimeout = errors.New("receive timeout")
 //	n+2: CRC OK and LQI
 // 2-byte CRC following packet body is checked and stripped in hardware.
 func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
-	r.changeState(SRX, STATE_RX)
-	defer r.changeState(SIDLE, STATE_IDLE)
+	r.Strobe(SRX)
+	defer r.Strobe(SIDLE)
 	if verbose {
 		log.Printf("waiting for interrupt in %s state", r.State())
 	}
@@ -61,9 +61,6 @@ func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 	if r.Error() != nil {
 		return nil, minRSSI
 	}
-	// Enter IDLE state before reading FREQEST.
-	// See Design Note DN015 (SWRA159).
-	r.changeState(SIDLE, STATE_IDLE)
 	return r.verifyPacket(data, numBytes)
 }
 
@@ -98,5 +95,34 @@ func (r *Radio) verifyPacket(data []byte, numBytes int) ([]byte, int) {
 
 // Send transmits the given packet.
 func (r *Radio) Send(data []byte) {
-	panic("unimplemented")
+	if len(data)+1 > fifoSize {
+		log.Panicf("attempting to send %d-byte packet", len(data))
+	}
+	if r.Error() != nil {
+		return
+	}
+	if verbose {
+		log.Printf("sending %d-byte packet in %s state", len(data), r.State())
+	}
+	packet := append([]byte{byte(len(data))}, data...)
+	defer r.Strobe(SIDLE)
+	r.hw.WriteBurst(TXFIFO, packet)
+	r.Strobe(STX)
+	for r.Error() == nil {
+		n := r.ReadNumTXBytes()
+		if n == 0 || r.Error() == ErrTXFIFOUnderflow {
+			break
+		}
+		if verbose {
+			log.Printf("waiting to transmit %d bytes in %s state", n, r.State())
+		}
+		time.Sleep(time.Millisecond)
+	}
+	if verbose {
+		log.Printf("TX finished in %s state", r.State())
+	}
+	if r.Error() == nil {
+		r.stats.Packets.Sent++
+		r.stats.Bytes.Sent += len(data)
+	}
 }

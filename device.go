@@ -85,7 +85,7 @@ func Open() *Radio {
 
 // Close closes the radio device.
 func (r *Radio) Close() {
-	r.changeState(SIDLE, STATE_IDLE)
+	r.Strobe(SIDLE)
 	r.hw.Close()
 }
 
