@@ -33,10 +33,10 @@ var (
 	// assuming 250 kHz channel spacing.
 	// The initial FSCTRL0 offsets were determined empirically.
 	Channels = []Channel{
-		{000, 0xBE}, // 2425 MHz
-		{100, 0xBE}, // 2450 MHz
-		{199, 0xBE}, // 2474.75 MHz
-		{209, 0xBE}, // 2477.25 MHz
+		{000, 0xFD}, // 2425 MHz
+		{100, 0xFD}, // 2450 MHz
+		{199, 0xFD}, // 2474.75 MHz
+		{209, 0xFD}, // 2477.25 MHz
 	}
 )
 
