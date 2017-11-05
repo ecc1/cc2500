@@ -1,6 +1,7 @@
 package cc2500
 
 import (
+	"math/bits"
 	"time"
 )
 
@@ -73,7 +74,7 @@ func unmarshalTransmitterID(v []byte) string {
 
 // Unmarshal a 16-bit float (13-bit mantissa, 3-bit exponent) as a uint32.
 func unmarshalReading(v []byte) uint32 {
-	u0, u1 := reverseBits[v[0]], reverseBits[v[1]]
+	u0, u1 := bits.Reverse8(v[0]), bits.Reverse8(v[1])
 	u := uint16(u0) | uint16(u1)<<8
 	return uint32(u&0x1FFF) << (u >> 13)
 }
