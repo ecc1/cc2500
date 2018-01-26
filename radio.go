@@ -126,3 +126,14 @@ func (r *Radio) Send(data []byte) {
 		r.stats.Bytes.Sent += len(data)
 	}
 }
+
+// SendAndReceive transmits the given packet,
+// then listens with the given timeout for an incoming packet.
+// It returns the packet and the associated RSSI.
+func (r *Radio) SendAndReceive(data []byte, timeout time.Duration) ([]byte, int) {
+	r.Send(data)
+	if r.Error() != nil {
+		return nil, 0
+	}
+	return r.Receive(timeout)
+}

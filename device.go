@@ -12,11 +12,6 @@ const (
 
 type hwFlavor struct{}
 
-// Name returns the radio's name.
-func (f hwFlavor) Name() string {
-	return "CC2500"
-}
-
 // SPIDevice returns the pathname of the radio's SPI device.
 func (f hwFlavor) SPIDevice() string {
 	return spiDevice
@@ -87,6 +82,16 @@ func Open() *Radio {
 func (r *Radio) Close() {
 	r.Strobe(SIDLE)
 	r.hw.Close()
+}
+
+// Name returns the radio's name.
+func (r *Radio) Name() string {
+	return "CC2500"
+}
+
+// Device returns the pathname of the radio's device.
+func (r *Radio) Device() string {
+	return spiDevice
 }
 
 // Version returns the radio's hardware version.
