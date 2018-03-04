@@ -88,8 +88,6 @@ func (r *Radio) verifyPacket(data []byte, numBytes int) ([]byte, int) {
 	if verbose {
 		log.Printf("received packet with RSSI %d, LQI %02X: % X", rssi, lqi, packet)
 	}
-	r.stats.Packets.Received++
-	r.stats.Bytes.Received += numBytes
 	return packet, rssi
 }
 
@@ -120,10 +118,6 @@ func (r *Radio) Send(data []byte) {
 	}
 	if verbose {
 		log.Printf("TX finished in %s state", r.State())
-	}
-	if r.Error() == nil {
-		r.stats.Packets.Sent++
-		r.stats.Bytes.Sent += len(data)
 	}
 }
 

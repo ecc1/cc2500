@@ -58,9 +58,8 @@ func (f hwFlavor) WriteBurstAddress(addr byte) byte {
 
 // Radio represents an open radio device.
 type Radio struct {
-	hw    *radio.Hardware
-	stats radio.Statistics
-	err   error
+	hw  *radio.Hardware
+	err error
 }
 
 // Open opens the radio device.
@@ -120,11 +119,6 @@ func (r *Radio) Reset() {
 func (r *Radio) Init(frequency uint32) {
 	r.Reset()
 	r.InitRF(frequency)
-}
-
-// Statistics returns the byte and packet counts for the radio device.
-func (r *Radio) Statistics() radio.Statistics {
-	return r.stats
 }
 
 // Error returns the error state of the radio device.
