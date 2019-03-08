@@ -69,7 +69,7 @@ func printFrequency(label string, f byte) {
 	log.Printf("%s = %d Hz (%X)", label, registerToFrequencyOffset(f), f)
 }
 
-func (r *Radio) scanChannels(readings chan<- *Packet) {
+func (r *Radio) scanChannels(readings chan<- *Packet, sync bool) {
 	inSync := false
 	lastReading := time.Time{}
 	r.Init(baseFrequency)
@@ -87,16 +87,20 @@ func (r *Radio) scanChannels(readings chan<- *Packet) {
 			}
 			data, rssi := r.Receive(waitTime)
 			p = r.checkPacket(n, data, rssi)
+			err := r.Error()
+			if err != nil && err != ErrReceiveTimeout {
+				log.Print(err)
+			}
+			r.SetError(nil)
+			if !sync {
+				break
+			}
 			if p != nil {
 				inSync = true
 				lastReading = p.Timestamp.Add(-time.Duration(n) * channelInterval)
 				r.adjustFrequency(n)
 				break
 			}
-			if r.Error() != ErrReceiveTimeout {
-				log.Print(r.Error())
-			}
-			r.SetError(nil)
 			waitTime = fastWait
 		}
 		readings <- p
@@ -142,13 +146,16 @@ func (r *Radio) checkPacket(channel int, data []byte, rssi int) *Packet {
 // ReceiveReadings starts a goroutine to listen for incoming packets
 // and returns a channel that can be used to receive them.
 func (r *Radio) ReceiveReadings() <-chan *Packet {
+	var sync bool
 	if transmitterID == "" {
 		log.Printf("receiving readings from any G4 transmitter (%s environment variable not set)", transmitterIDEnvVar)
+		sync = false
 	} else {
 		log.Printf("receiving readings from G4 transmitter %s", transmitterID)
+		sync = true
 	}
 	readings := make(chan *Packet, 10)
-	go r.scanChannels(readings)
+	go r.scanChannels(readings, sync)
 	return readings
 }
 
