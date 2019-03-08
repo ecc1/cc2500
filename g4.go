@@ -18,6 +18,8 @@ const (
 	slowWait = readingInterval + 1*time.Minute
 	fastWait = channelInterval + 50*time.Millisecond
 	syncWait = wakeupMargin + 100*time.Millisecond
+
+	verboseG4 = false
 )
 
 type (
@@ -42,7 +44,7 @@ var (
 
 func (r *Radio) changeChannel(i int) {
 	c := Channels[i]
-	if verbose {
+	if verboseG4 {
 		log.Printf("changing to channel %d", i)
 		printFrequency("offset ", c.offset)
 	}
@@ -56,7 +58,7 @@ func (r *Radio) adjustFrequency(i int) {
 	offset := r.hw.ReadRegister(FSCTRL0)
 	c.offset = offset + freqEst
 	r.hw.WriteRegister(FSCTRL0, c.offset)
-	if verbose {
+	if verboseG4 {
 		printFrequency("FREQEST", freqEst)
 		printFrequency("FSCTRL0", offset)
 		printFrequency("offset ", c.offset)
@@ -75,7 +77,7 @@ func (r *Radio) scanChannels(readings chan<- *Packet) {
 		waitTime := slowWait
 		var p *Packet
 		for n := range Channels {
-			if verbose {
+			if verboseG4 {
 				log.Printf("listening on channel %d; sync = %v", n, inSync)
 			}
 			r.changeChannel(n)
@@ -108,7 +110,7 @@ func syncSleep(lastReading time.Time) {
 	t := time.Now().Add(wakeupMargin)
 	sleepTime := lastReading.Add(readingInterval).Sub(t)
 	if sleepTime > 0 {
-		if verbose {
+		if verboseG4 {
 			log.Printf("sleeping for %v", sleepTime)
 		}
 		time.Sleep(sleepTime)
