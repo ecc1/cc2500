@@ -164,7 +164,6 @@ func registerToFrequencyOffset(offset byte) int32 {
 	return int32(int8(offset)) * FXOSC >> 14
 }
 
-// nolint
 func frequencyOffsetToRegister(offset int32) byte {
 	return byte((int64(offset)<<14 + FXOSC/2) / FXOSC)
 }
