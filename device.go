@@ -59,6 +59,8 @@ func (f hwFlavor) WriteBurstAddress(addr byte) byte {
 // Radio represents an open radio device.
 type Radio struct {
 	hw  *radio.Hardware
+	snd []byte
+	rcv []byte
 	err error
 }
 
@@ -74,6 +76,8 @@ func Open() *Radio {
 		r.SetError(radio.HardwareVersionError{Actual: v, Expected: hwVersion})
 		return r
 	}
+	r.snd = make([]byte, 1)
+	r.rcv = make([]byte, 1)
 	return r
 }
 
@@ -105,9 +109,9 @@ func (r *Radio) Strobe(cmd byte) byte {
 	if verbose && cmd != SNOP {
 		log.Printf("issuing %s command", strobeName(cmd))
 	}
-	buf := []byte{cmd}
-	r.err = r.hw.SPIDevice().Transfer(buf)
-	return buf[0]
+	r.snd[0] = cmd
+	r.err = r.hw.SPIDevice().Transfer(r.snd, r.rcv)
+	return r.rcv[0]
 }
 
 // Reset resets the radio device.
